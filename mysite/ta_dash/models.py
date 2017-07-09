@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
-
+from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
@@ -28,3 +31,12 @@ class Upload(Submission):
 
 class TextSubmission(Submission):
     text = models.CharField(max_length=200)
+
+class AccountProfileID(models.Model):
+    userID = models.OneToOneField(User, on_delete=models.CASCADE)
+    profileID = models.IntegerField(unique=True)
+    
+class GoogleUser(models.Model):
+    google_id = models.IntegerField(unique=True)
+    userID = models.IntegerField(unique=True)
+
