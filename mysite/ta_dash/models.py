@@ -4,6 +4,13 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+def user_directory_path(instance, filename):
+    assignment = instance.assignment
+    assignment_name = assignment.assignment_name
+    assigning_class = assignment.class_id.name
+    return '{0}/{1}/{2}'.format(instance.user.username, assigning_class, assignment_name)
+
+
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
 
@@ -33,7 +40,7 @@ class Submission(models.Model):
         abstract = True
 
 class Upload(Submission):
-    upload = models.FileField(upload_to='uploads/')
+    upload = models.FileField(upload_to=user_directory_path)
 
 class TextSubmission(Submission):
     text = models.CharField(max_length=200)
