@@ -10,7 +10,6 @@ def user_directory_path(instance, filename):
     assigning_class = assignment.class_id.name
     return '{0}/{1}/{2}'.format(instance.user.username, assigning_class, assignment_name)
 
-
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
 
@@ -36,6 +35,7 @@ class Assignment(models.Model):
 class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    submission_type = models.CharField(max_length=200)
     class Meta:
         abstract = True
 

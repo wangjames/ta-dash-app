@@ -1,0 +1,10 @@
+{% for assignment in assignment_list %}
+<h2>
+  <a href="{{ assignment.url }}"> 
+    {{ assignment.name }}
+  </a>
+</h2>
+{% endfor %}
+
+<a href="{{ create_assignment_url }}"> Create Assignment </a>
+

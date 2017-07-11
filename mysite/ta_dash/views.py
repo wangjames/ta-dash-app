@@ -16,7 +16,8 @@ def returnAuthenticationStatus(request):
         return False
     
 def retrieve_profile(request):
-    if "user" in request:
+
+    if request.user:
         user = request.user
         profile_id = AccountProfileID.objects.get(id=user.accountprofileid.id).profileID
         user_profile = UserProfile.objects.get(id=profile_id)
@@ -40,19 +41,22 @@ def check_access(class_object, access, user_profile):
 def list_view(request):
     if returnAuthenticationStatus(request):
         result_list = []
-        user_profile = retrieve_profile(request.user)
+        create_class_url = "/main/create"
+        user_profile = retrieve_profile(request)
         enrolled_classes = user_profile.enrollment_set.all().values("user","enrolled_class")
         for element in enrolled_classes:
-            result_list.append(Class.objects.get(id=element["enrolled_class"]))
-        return HttpResponse(serialize('json', result_list))
+            context_object = {}
+            context_object["url"] =  "/main/class/" + str(element["enrolled_class"])
+            context_object["name"] = Class.objects.get(id=element["enrolled_class"]).name
+            result_list.append(context_object)
+        return render(request, "main/index.html", {"class_list": result_list, "create_class_url": create_class_url})
     else:
         return HttpResponse("You need to log in")
-
 def create_class(request):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
             created_class = Class.objects.create(name=request.POST["name"])
-            user_profile = retrieve_profile(request.user)
+            user_profile = retrieve_profile(request)
             created_enrollment = Enrollment.objects.create(enrolled_class=created_class, user=user_profile, access="TR")
             return HttpResponse("Object Created")
         else:
@@ -61,27 +65,38 @@ def create_class(request):
     else:
         return HttpResponse("You need to log in")
 
-def class_index(request):
+def class_index(request, class_index):
     if returnAuthenticationStatus(request):
-        selected_class = Class.objects.get(id=request.post["class_id"])
+        selected_class = Class.objects.get(id=class_index)
         user_profile = retrieve_profile(request)
         if check_enrollment(selected_class, user_profile):
-            return HttpResponse(selected_class)
+            create_assignment_url = "/main/create/" + str(class_index) 
+            assignment_list = []
+            assignments = selected_class.assignment_set.all().values("assignment_name", "id")
+            print assignments
+            for element in assignments:
+                print element
+                context_object = {}
+                context_object["url"] = str(element["id"]) + "/"
+                context_object["name"] = element["assignment_name"]
+                assignment_list.append(context_object)
+            return render(request, "main/class_index.html", {"assignment_list": assignment_list, "create_assignment_url": create_assignment_url})
         else:
             return HttpResponse("You do not have access to the class")
     else:
         return HttpResponse("Please log in")
 
-def create_assignment(request):
+def create_assignment(request, class_index):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
-            selected_class = Class.objects.get(id=request.post["class_id"])
+            selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
             if check_access(selected_class, "TR", user_profile):
-                Assignment.objects.create(name=request.POST["assignment_name"], class_id=selected_class)
+                Assignment.objects.create(assignment_name=request.POST["assignment_name"], class_id=selected_class)
+                return HttpResponse("Done")
         else:
             form = AssignmentForm()
-            return render(request, "main/create_assignment.html", {"form": form})
+            return render(request, "main/create_assignment.html", {"form": form, "class_index" : class_index})
     else:
         return HttpResponse("You need to login")
 
@@ -101,19 +116,30 @@ def create_submission(request):
             return render(request, "main/create_assignment.html", {"form": form})
     else:
         return HttpResponse("You need to login")
+        
+def returnSubmission(user, assignment, selected_class):
+    if len(assignment.textsubmission_set) == 1:
+        return assignment.textsubmission_set[0]
+    elif len(assignment.upload_set) == 1:
+        return assignment.upload_set[0]
+    else:
+        return None
 
-def view_assignment(request):
+def view_assignment(request, class_index, assignment_index):
     if returnAuthenticationStatus(request):
         user_profile = retrieve_profile(request)
-        selected_class = Class.objects.get(id=request.GET["class_id"])
+        selected_class = Class.objects.get(id=class_index)
         if check_enrollment(user_profile, selected_class):
-            selected_assignment = Class.assignment_set.get(id=request.GET["assignment_id"])
+            selected_assignment = selected_class.assignment_set.get(id=assignment_index)
             submission = returnSubmission(user_profile, selected_assignment, selected_class)
             return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment, "submission" : submission})
         else:
             return HttpResponse("Denied")
     else:
-        return HttpResponse("You have to signin")
+        return HttpResponse("You have to sign in")
+
+def main(request):
+    return HttpResponse("This is the main page")
     
 def register(request):
     if request.method == "POST":
