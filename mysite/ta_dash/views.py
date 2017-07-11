@@ -118,9 +118,9 @@ def create_submission(request):
         return HttpResponse("You need to login")
         
 def returnSubmission(user, assignment, selected_class):
-    if len(assignment.textsubmission_set) == 1:
+    if len(assignment.textsubmission_set.all()) == 1:
         return assignment.textsubmission_set[0]
-    elif len(assignment.upload_set) == 1:
+    elif len(assignment.upload_set.all()) == 1:
         return assignment.upload_set[0]
     else:
         return None
@@ -129,7 +129,7 @@ def view_assignment(request, class_index, assignment_index):
     if returnAuthenticationStatus(request):
         user_profile = retrieve_profile(request)
         selected_class = Class.objects.get(id=class_index)
-        if check_enrollment(user_profile, selected_class):
+        if check_enrollment(selected_class, user_profile):
             selected_assignment = selected_class.assignment_set.get(id=assignment_index)
             submission = returnSubmission(user_profile, selected_assignment, selected_class)
             return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment, "submission" : submission})
