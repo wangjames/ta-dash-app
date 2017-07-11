@@ -104,9 +104,9 @@ def create_assignment(request, class_index):
         
 def returnSubmission(user, assignment, selected_class):
     if len(assignment.textsubmission_set.all()) == 1:
-        return assignment.textsubmission_set[0]
+        return assignment.textsubmission_set.all()[0]
     elif len(assignment.upload_set.all()) == 1:
-        return assignment.upload_set[0]
+        return assignment.upload_set.all()[0]
     else:
         return None
 
@@ -154,3 +154,5 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html',{"form":form})
+    
+    

@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-
+from ta_dash.storage import OverwriteStorage
 def user_directory_path(instance, filename):
     assignment = instance.assignment
     assignment_name = assignment.assignment_name
@@ -32,15 +32,18 @@ class Assignment(models.Model):
     assignment_name = models.CharField(max_length=200, unique=True)
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
 
+            
 class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     submission_type = models.CharField(max_length=200)
+    
     class Meta:
         abstract = True
-
+    
 class Upload(Submission):
-    upload = models.FileField(upload_to=user_directory_path)
+    upload = models.FileField(max_length=255, storage=OverwriteStorage(), upload_to=user_directory_path)
+    
 
 class TextSubmission(Submission):
     text = models.CharField(max_length=200)
@@ -58,3 +61,13 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         profile = UserProfile.objects.create(name=instance.username)
         AccountProfileID.objects.create(userID=instance, profileID=profile.id)
+
+@receiver(pre_save, sender=Upload)
+def delete_duplicate(sender, instance, **kwargs):
+    try:
+        this = Upload.objects.get(user=instance.user, assignment=instance.assignment)
+        if this != None:
+            this.delete()
+    except:
+        pass
+    
