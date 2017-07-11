@@ -12,5 +12,4 @@ urlpatterns = [
     url('^register/$', views.register, name='register'),
     url('^create/$', views.create_class, name="create_class"),
     url('^create/(?P<class_index>[0-9]+)', views.create_assignment, name="create_assignment"),
-    url('^create/(?P<class_index>[0-9]+)/(?P<assignment_index>[0-9]+)/', views.create_submission, name="create_submission"),
 ]

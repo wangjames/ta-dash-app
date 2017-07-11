@@ -100,22 +100,7 @@ def create_assignment(request, class_index):
     else:
         return HttpResponse("You need to login")
 
-def create_submission(request):
-    if returnAuthenticationStatus(request):
-        if request.method == "POST":
-            selected_class = Class.objects.get(id=request.post["class_id"])
-            user_profile = retrieve_profile(request)
-            if check_access(selected_class, "ST", user_profile):
-                selected_assignment = Assignment.objects.get(id=request.POST["assignment_id"])
-                if "FILES" in request:
-                    Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES)
-                else:
-                    TextSubmission.objects.create(user=user_profile, assignment=selected_assignment, text=request.POST["text"])
-        else:
-            form = AssignmentForm()
-            return render(request, "main/create_assignment.html", {"form": form})
-    else:
-        return HttpResponse("You need to login")
+
         
 def returnSubmission(user, assignment, selected_class):
     if len(assignment.textsubmission_set.all()) == 1:
@@ -127,14 +112,26 @@ def returnSubmission(user, assignment, selected_class):
 
 def view_assignment(request, class_index, assignment_index):
     if returnAuthenticationStatus(request):
-        user_profile = retrieve_profile(request)
-        selected_class = Class.objects.get(id=class_index)
-        if check_enrollment(selected_class, user_profile):
-            selected_assignment = selected_class.assignment_set.get(id=assignment_index)
-            submission = returnSubmission(user_profile, selected_assignment, selected_class)
-            return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment, "submission" : submission})
+        if request.method == "POST":
+            selected_class = Class.objects.get(id=class_index)
+            user_profile = retrieve_profile(request)
+            if check_access(selected_class, "TR", user_profile):
+                selected_assignment = Assignment.objects.get(id=assignment_index)
+                if request.FILES:
+                    Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["myfile"])
+                else:
+                    TextSubmission.objects.create(user=user_profile, assignment=selected_assignment, text=request.POST["text"])
+                return HttpResponse("Done")
+            return HttpResponse("Authorization failed")
         else:
-            return HttpResponse("Denied")
+            user_profile = retrieve_profile(request)
+            selected_class = Class.objects.get(id=class_index)
+            if check_enrollment(selected_class, user_profile):
+                selected_assignment = selected_class.assignment_set.get(id=assignment_index)
+                submission = returnSubmission(user_profile, selected_assignment, selected_class)
+                return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment, "submission" : submission})
+            else:
+                return HttpResponse("Denied")
     else:
         return HttpResponse("You have to sign in")
 

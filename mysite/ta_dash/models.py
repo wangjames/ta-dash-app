@@ -8,7 +8,7 @@ def user_directory_path(instance, filename):
     assignment = instance.assignment
     assignment_name = assignment.assignment_name
     assigning_class = assignment.class_id.name
-    return '{0}/{1}/{2}'.format(instance.user.username, assigning_class, assignment_name)
+    return '{0}/{1}/{2}'.format(instance.user.name, assigning_class, assignment_name)
 
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
