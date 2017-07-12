@@ -12,7 +12,7 @@ def user_directory_path(instance, filename):
 
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
-
+    email = models.CharField(max_length=200, unique=True)
 class Class(models.Model):
     name = models.CharField(max_length=200)
     participant = models.ManyToManyField(UserProfile, through='Enrollment')
@@ -27,7 +27,16 @@ class Enrollment(models.Model):
         choices=access_choices,
         default="ST",
     )
-    
+class PendingEnrollment(models.Model):
+    inviter = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="inviter")
+    recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="recipient")
+    class_candidate = models.ForeignKey(Class, on_delete=models.CASCADE)
+    access_choices = (("TR", 'Teacher'),
+        ("ST", "Student"))
+    access = models.CharField(
+        max_length=2,
+        choices=access_choices,
+        default="ST")
 class Assignment(models.Model):
     assignment_name = models.CharField(max_length=200, unique=True)
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -59,7 +68,7 @@ class GoogleUser(models.Model):
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
-        profile = UserProfile.objects.create(name=instance.username)
+        profile = UserProfile.objects.create(name=instance.username, email=instance.email)
         AccountProfileID.objects.create(userID=instance, profileID=profile.id)
 
 @receiver(pre_save, sender=Upload)

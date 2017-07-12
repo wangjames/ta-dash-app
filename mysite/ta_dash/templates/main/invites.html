@@ -1,0 +1,11 @@
+<h1> Class Invitations</h1>
+{% for invite in invite_list %}
+    
+    <p>
+        <form  method="post" action= "{{ invite.url }}">
+            {% csrf_token %}
+            <label>Invite for {{ invite.name }}</label>
+          <button type="submit" name="your_name" value="your_value" class="btn-link">Accept</button>
+        </form>
+    </p>
+{% endfor %}

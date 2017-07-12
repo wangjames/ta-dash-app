@@ -1,13 +1,12 @@
 from django.shortcuts import render
-from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload
+from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment
 from django.core.serializers import serialize
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login
-from forms import ClassForm, AssignmentForm
+from forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm
 
 def returnAuthenticationStatus(request):
     if request.user.is_authenticated():
@@ -73,9 +72,7 @@ def class_index(request, class_index):
             create_assignment_url = "/main/create/" + str(class_index) 
             assignment_list = []
             assignments = selected_class.assignment_set.all().values("assignment_name", "id")
-            print assignments
             for element in assignments:
-                print element
                 context_object = {}
                 context_object["url"] = str(element["id"]) + "/"
                 context_object["name"] = element["assignment_name"]
@@ -94,14 +91,71 @@ def create_assignment(request, class_index):
             if check_access(selected_class, "TR", user_profile):
                 Assignment.objects.create(assignment_name=request.POST["assignment_name"], class_id=selected_class)
                 return HttpResponse("Done")
+            else:
+                return HttpResponse("Denied")
         else:
             form = AssignmentForm()
             return render(request, "main/create_assignment.html", {"form": form, "class_index" : class_index})
     else:
         return HttpResponse("You need to login")
 
-
+def accept_invite(request, class_index):
+    print "yup"
+    if returnAuthenticationStatus(request):
+        if request.method == "POST":
+            user_profile = retrieve_profile(request)
+            selected_class = Class.objects.get(id=class_index)
+            try:
+                pending_enrollment = PendingEnrollment.objects.get(class_candidate=selected_class, recipient=user_profile)
+                confirmed_enrollment = Enrollment.objects.create(enrolled_class=pending_enrollment.class_candidate, user=pending_enrollment.recipient)
+                pending_enrollment.delete()
+                return HttpResponse("Completed")
+            except:
+                return HttpResponse("No such invite")
+        else:
+            return HttpResponse("Must be posted")
+    else:
+        return HttpResponse("You need to login.")
         
+def get_invites(request):
+    if returnAuthenticationStatus(request):
+        user_profile = retrieve_profile(request)
+        result_list = []
+        try:
+            invites = PendingEnrollment.objects.filter(recipient=user_profile).values('class_candidate')
+            print invites
+            for element in invites:
+                context_object = {}
+                context_object["url"] =  "/main/invites/" + str(element["class_candidate"]) + "/"
+                context_object["name"] = Class.objects.get(id=element["class_candidate"]).name
+                result_list.append(context_object)
+            return render(request, "main/invites.html", {"invite_list": result_list})
+        except:
+            return HttpResponse("No invites")
+    else:
+        return HttpResponse("You need to login")
+
+def invite_user(request, class_index):
+    if returnAuthenticationStatus(request):
+        selected_class = Class.objects.get(id=class_index)
+        user_profile = retrieve_profile(request)
+        if check_enrollment(selected_class, user_profile):
+            if request.method == "POST":
+                recipient_email = request.POST["email"]
+                try:
+                    recipient = UserProfile.objects.get(email=recipient_email)
+                    PendingEnrollment.objects.create(inviter=user_profile, recipient=recipient, class_candidate=selected_class)
+                    return HttpResponse("Finished")
+                except:
+                    return HttpResponse("User does not exist")
+            else:
+                form = PendingEnrollmentForm()
+                return render(request, "main/invite_class.html", {"form":form, "class_index": class_index})
+        else:
+            return HttpResponse("You are not in this class.")
+    else:
+        return HttpResponse("You need to login.")
+            
 def returnSubmission(user, assignment, selected_class):
     if len(assignment.textsubmission_set.all()) == 1:
         return assignment.textsubmission_set.all()[0]
@@ -115,7 +169,7 @@ def view_assignment(request, class_index, assignment_index):
         if request.method == "POST":
             selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
-            if check_access(selected_class, "TR", user_profile):
+            if check_access(selected_class, "ST", user_profile):
                 selected_assignment = Assignment.objects.get(id=assignment_index)
                 if request.FILES:
                     Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["myfile"])
@@ -154,5 +208,4 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html',{"form":form})
-    
     
