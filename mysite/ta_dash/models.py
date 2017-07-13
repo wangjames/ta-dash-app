@@ -10,13 +10,17 @@ def user_directory_path(instance, filename):
     assigning_class = assignment.class_id.name
     return '{0}/{1}/{2}'.format(instance.user.name, assigning_class, assignment_name)
 
+
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
     email = models.CharField(max_length=200, unique=True)
 class Class(models.Model):
     name = models.CharField(max_length=200)
     participant = models.ManyToManyField(UserProfile, through='Enrollment')
-
+class Meeting(models.Model):
+    address = models.CharField(max_length=200)
+    associated_class = models.ForeignKey(Class, on_delete=models.CASCADE)
+    meeting_date = models.DateTimeField()
 class Enrollment(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     enrolled_class = models.ForeignKey(Class, on_delete=models.CASCADE)

@@ -11,6 +11,8 @@ urlpatterns = [
     url(r'^class/(?P<class_index>[0-9]+)/invite/$', views.invite_user, name="invite_user"),
     url(r'^invites/(?P<class_index>[0-9]+)/$', views.accept_invite, name="accept_invite"),
     url(r'^invites/$', views.get_invites, name="invites"),
+    url(r'^create_meeting/$', views.create_meeting, name="find_meeting"),
+    url(r'^getsuggest/$', views.return_suggestions, name="get_suggest"),
     url('^', include('django.contrib.auth.urls')),
     url('^register/$', views.register, name='register'),
     url('^create/$', views.create_class, name="create_class"),

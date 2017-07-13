@@ -1,4 +1,5 @@
 from django.shortcuts import render
+import requests
 from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment
 from django.core.serializers import serialize
 from django.utils.encoding import force_text
@@ -7,7 +8,18 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm
-
+import json
+Yelp_Information = {
+    "client_id": "HbhLE7U93kYuGMRsogCd0A",
+    "client_secret": "O9bOeq6reFyBreYGRhTRrj2JNVHJoRj9HpgKx7it7EtykTWDGebyLB4mKKndSEZU",
+    "grant_type": "client_credentials"
+}
+def getAuthenticationToken():
+    url = "https://api.yelp.com/oauth2/token"
+    response = requests.post(url, params=Yelp_Information)
+    data = json.loads(response.text)
+    print data
+    return data["access_token"]
 def returnAuthenticationStatus(request):
     if request.user.is_authenticated():
         return True
@@ -82,7 +94,21 @@ def class_index(request, class_index):
             return HttpResponse("You do not have access to the class")
     else:
         return HttpResponse("Please log in")
-
+def return_suggestions(request):
+    if request.method == "GET":
+        print request.GET
+        address = request.GET.get("address","")
+        category = request.GET.get("category","")
+        param_dict = {"location": address, "categories": category}
+        print param_dict
+        headers = {"Authorization": "Bearer " + getAuthenticationToken()}
+        url = "https://api.yelp.com/v3/businesses/search"
+        response = requests.get(url, params=param_dict, headers=headers)
+        return HttpResponse(response)
+    else:
+        return HttpResponse("Use a GET request.")
+def create_meeting(request):
+    return render(request, 'main/find_meeting.html', {})
 def create_assignment(request, class_index):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
