@@ -1,3 +1,7 @@
+<head>
+{% load staticfiles %}
+<script type="text/javascript" src="{% static 'ta_dash/hi.js' %}"></script>
+</head>
 {% for class in class_list %}
 <h2>
   <a href="{{ class.url }}"> 

@@ -188,7 +188,49 @@ def view_assignment(request, class_index, assignment_index):
                 return HttpResponse("Denied")
     else:
         return HttpResponse("You have to sign in")
-
+def view_attendees(request, class_index):
+    if returnAuthenticationStatus(request):
+        selected_class = Class.objects.get(id=class_index)
+        user_profile = retrieve_profile(request)
+        if check_access(selected_class, "TR", user_profile):
+            result_list = []
+            enrollments = Enrollment.objects.filter(enrolled_class=selected_class)
+            for element in enrollments:
+                context_object = {}
+                context_object["url"] =  "/main/user/" + str(element["user"]) + "/" + str(element["enrolled_class"]) + "/"
+                context_object["name"] = UserProfile.objects.get(id=element["user"]).name
+                result_list.append(context_object)
+            return render(request, "main/invites.html", {"invite_list": result_list})
+def view_submissions_by_user(request, user_id, class_id):
+    if returnAuthenticationStatus(request):
+        selected_class = Class.objects.get(id=class_index)
+        user_profile = retrieve_profile(request)
+        if check_access(selected_class, "TR", user_profile):
+            result_list = []
+            selected_user_profile = UserProfile.objects.get(id=user_id)
+            assignments = Assignment.objects.get(user=selected_user_profile, class_id=selected_class)
+            for assignment in assignments:
+                selected_upload = Upload.objects.get(assignment=assignment, user=selected_user_profile)
+                context_object = {}
+                context_object["url"] = "download"
+                context_object["name"] = assignment.assignment_name
+                result_list.append(context_object)
+            return render(request, "main/view_submission.html", {"invite_list": result_list})
+def view_submission_by_assignment(request,user_id,class_id):
+    if returnAuthenticationStatus(request):
+        selected_class = Class.objects.get(id=class_index)
+        user_profile = retrieve_profile(request)
+        if check_access(selected_class, "TR", user_profile):
+            result_list = []
+            selected_user_profile = UserProfile.objects.get(id=user_id)
+            assignments = Assignment.objects.get(user=selected_user_profile, class_id=selected_class)
+            for assignment in assignments:
+                selected_upload = Upload.objects.get(assignment=assignment)
+                context_object = {}
+                context_object["url"] = "download"
+                context_object["name"] = assignment.assignment_name
+                result_list.append(context_object)
+            return render(request, "main/view_submission.html", {"invite_list": result_list})
 def main(request):
     return HttpResponse("This is the main page")
     
