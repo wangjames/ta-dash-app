@@ -5,7 +5,11 @@
 </select>
 <button onclick="load_info()">Get Suggestions</button>
 <div id="suggestions"></div>
-
+<form method="post" action="{% url 'create_meeting' class_index %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Create</button>
+</form>
 <script>
     
     function load_info(){

@@ -1,8 +1,9 @@
-from django.forms import ModelForm, EmailField, Form
-from models import Class, Assignment
+from django.forms import ModelForm, EmailField, Form, CharField
+from models import Class, Assignment, Meeting
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.translation import ugettext_lazy as _
+from django.forms.widgets import DateTimeInput
 # Create the form class.
 class ClassForm(ModelForm):
     class Meta:
@@ -29,3 +30,7 @@ class UserCreationForm(UserCreationForm):
         return user
 class PendingEnrollmentForm(Form):
     email = EmailField(label="Recipient's Email")
+class MeetingForm(ModelForm):
+    class Meta:
+        model = Meeting
+        fields = ("address", "meeting_date")

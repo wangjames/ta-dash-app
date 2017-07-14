@@ -1,13 +1,13 @@
 from django.shortcuts import render
 import requests
-from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment
+from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting
 from django.core.serializers import serialize
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm
+from forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm, MeetingForm
 import json
 Yelp_Information = {
     "client_id": "HbhLE7U93kYuGMRsogCd0A",
@@ -89,7 +89,9 @@ def class_index(request, class_index):
                 context_object["url"] = str(element["id"]) + "/"
                 context_object["name"] = element["assignment_name"]
                 assignment_list.append(context_object)
-            return render(request, "main/class_index.html", {"assignment_list": assignment_list, "create_assignment_url": create_assignment_url})
+            meeting = Meeting.objects.get(associated_class=selected_class)
+            print meeting.meeting_date
+            return render(request, "main/class_index.html", {"assignment_list": assignment_list, "create_assignment_url": create_assignment_url, "meeting": meeting})
         else:
             return HttpResponse("You do not have access to the class")
     else:
@@ -107,8 +109,21 @@ def return_suggestions(request):
         return HttpResponse(response)
     else:
         return HttpResponse("Use a GET request.")
-def create_meeting(request):
-    return render(request, 'main/find_meeting.html', {})
+def create_meeting(request, class_index):
+    if returnAuthenticationStatus(request):
+        if request.method == "POST":
+            selected_class = Class.objects.get(id=class_index)
+            user_profile = retrieve_profile(request)
+            if check_access(selected_class, "ST", user_profile):
+                print request.POST["meeting_date"]
+                meeting_object = Meeting.objects.create(associated_class=selected_class, address=request.POST["address"], meeting_date=request.POST["meeting_date"])
+                print meeting_object.meeting_date
+                return HttpResponse("Done")
+            else:
+                return HttpResponse("Not a teacher")
+        else:
+            form = MeetingForm()
+            return render(request, 'main/find_meeting.html', {"form":form, "class_index": class_index})
 def create_assignment(request, class_index):
     if returnAuthenticationStatus(request):
         if request.method == "POST":

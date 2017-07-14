@@ -20,7 +20,8 @@ class Class(models.Model):
 class Meeting(models.Model):
     address = models.CharField(max_length=200)
     associated_class = models.ForeignKey(Class, on_delete=models.CASCADE)
-    meeting_date = models.DateTimeField()
+    meeting_date = models.CharField(max_length=200)
+
 class Enrollment(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     enrolled_class = models.ForeignKey(Class, on_delete=models.CASCADE)
@@ -79,6 +80,14 @@ def create_user_profile(sender, instance, created, **kwargs):
 def delete_duplicate(sender, instance, **kwargs):
     try:
         this = Upload.objects.get(user=instance.user, assignment=instance.assignment)
+        if this != None:
+            this.delete()
+    except:
+        pass
+@receiver(pre_save, sender= Meeting)
+def delete_duplicate(sender, instance, **kwargs):
+    try:
+        this = Meeting.objects.get(associated_class=instance.associated_class)
         if this != None:
             this.delete()
     except:
