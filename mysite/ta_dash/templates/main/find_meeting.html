@@ -1,15 +1,31 @@
-<input id="address"></input>
-<select id="option-menu">
-  <option value="cafes">cafes</option>
-  <option value="libraries">libraries</option>
-</select>
-<button onclick="load_info()">Get Suggestions</button>
-<div id="suggestions"></div>
-<form method="post" action="{% url 'create_meeting' class_index %}">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Create</button>
-</form>
+{% extends "main/base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-3 offset-md-1 index-box">
+           <form method="post" action="{% url 'create_meeting' class_index %}">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Create</button>
+            </form>
+        </div>
+        <div class="col-md-6 offset-md-1 map-box">
+         <div>Search For Places to Meet</div>
+            <label>Input Address</label>
+            <input id="address"></input>
+            <select id="option-menu">
+              <option value="cafes">cafes</option>
+              <option value="libraries">libraries</option>
+            </select>
+            <button onclick="load_info()">Get Suggestions</button>
+            <div id="suggestions"></div>
+        </div>
+    </div>
+  
+</div>
+
+
 <script>
     
     function load_info(){
@@ -31,9 +47,18 @@
              {
                let name = element["name"]
                let address = element["location"]["display_address"]
-               return {"name":name, "address":address}
+               return [name, address]
              })
-             document.getElementById("suggestions").innerHTML = JSON.stringify(businesses);
+             var result_string = ""
+             businesses.forEach(function(element)
+             {
+                 element.forEach(function(string)
+                 {
+                     result_string += string 
+                     result_string += "<br>"
+                 })
+             })
+             document.getElementById("suggestions").innerHTML = JSON.stringify(result_string);
             }
           };
           url += "?address=" + payload.address + "&category=" + payload.categories;
@@ -43,3 +68,4 @@
     }
 </script>
 
+{% endblock %}

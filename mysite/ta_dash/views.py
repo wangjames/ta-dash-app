@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import requests
 from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting
 from django.core.serializers import serialize
@@ -18,16 +18,13 @@ def getAuthenticationToken():
     url = "https://api.yelp.com/oauth2/token"
     response = requests.post(url, params=Yelp_Information)
     data = json.loads(response.text)
-    print data
     return data["access_token"]
 def returnAuthenticationStatus(request):
     if request.user.is_authenticated():
         return True
     else:
         return False
-    
 def retrieve_profile(request):
-
     if request.user:
         user = request.user
         profile_id = AccountProfileID.objects.get(id=user.accountprofileid.id).profileID
@@ -69,7 +66,7 @@ def create_class(request):
             created_class = Class.objects.create(name=request.POST["name"])
             user_profile = retrieve_profile(request)
             created_enrollment = Enrollment.objects.create(enrolled_class=created_class, user=user_profile, access="TR")
-            return HttpResponse("Object Created")
+            return redirect("/main/index")
         else:
             form = ClassForm()
             return render(request, 'main/create.html', {"form": form})
@@ -81,7 +78,8 @@ def class_index(request, class_index):
         selected_class = Class.objects.get(id=class_index)
         user_profile = retrieve_profile(request)
         if check_enrollment(selected_class, user_profile):
-            create_assignment_url = "/main/create/" + str(class_index) 
+            create_assignment_url = "/main/create/" + str(class_index)
+            create_meeting_url = "/main/class/" + str(class_index) + "/create_meeting/"
             assignment_list = []
             assignments = selected_class.assignment_set.all().values("assignment_name", "id")
             for element in assignments:
@@ -89,20 +87,23 @@ def class_index(request, class_index):
                 context_object["url"] = str(element["id"]) + "/"
                 context_object["name"] = element["assignment_name"]
                 assignment_list.append(context_object)
-            meeting = Meeting.objects.get(associated_class=selected_class)
-            print meeting.meeting_date
-            return render(request, "main/class_index.html", {"assignment_list": assignment_list, "create_assignment_url": create_assignment_url, "meeting": meeting})
+            try:
+                meeting = Meeting.objects.get(associated_class=selected_class)
+            except: 
+                meeting = {}
+            return render(request, "main/class_index.html", {"assignment_list": assignment_list,
+            "create_meeting_url": create_meeting_url,
+            "create_assignment_url": create_assignment_url, "meeting": meeting, "class_index": class_index})
+            
         else:
             return HttpResponse("You do not have access to the class")
     else:
         return HttpResponse("Please log in")
 def return_suggestions(request):
     if request.method == "GET":
-        print request.GET
         address = request.GET.get("address","")
         category = request.GET.get("category","")
         param_dict = {"location": address, "categories": category}
-        print param_dict
         headers = {"Authorization": "Bearer " + getAuthenticationToken()}
         url = "https://api.yelp.com/v3/businesses/search"
         response = requests.get(url, params=param_dict, headers=headers)
@@ -114,11 +115,9 @@ def create_meeting(request, class_index):
         if request.method == "POST":
             selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
-            if check_access(selected_class, "ST", user_profile):
-                print request.POST["meeting_date"]
+            if check_access(selected_class, "TR", user_profile):
                 meeting_object = Meeting.objects.create(associated_class=selected_class, address=request.POST["address"], meeting_date=request.POST["meeting_date"])
-                print meeting_object.meeting_date
-                return HttpResponse("Done")
+                return redirect("/main/class/" + str(class_index))
             else:
                 return HttpResponse("Not a teacher")
         else:
@@ -129,11 +128,8 @@ def create_assignment(request, class_index):
         if request.method == "POST":
             selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
-            if check_access(selected_class, "TR", user_profile):
-                Assignment.objects.create(assignment_name=request.POST["assignment_name"], class_id=selected_class)
-                return HttpResponse("Done")
-            else:
-                return HttpResponse("Denied")
+            Assignment.objects.create(assignment_name=request.POST["assignment_name"], class_id=selected_class)
+            return redirect("/main/class/class_index")
         else:
             form = AssignmentForm()
             return render(request, "main/create_assignment.html", {"form": form, "class_index" : class_index})
@@ -141,7 +137,6 @@ def create_assignment(request, class_index):
         return HttpResponse("You need to login")
 
 def accept_invite(request, class_index):
-    print "yup"
     if returnAuthenticationStatus(request):
         if request.method == "POST":
             user_profile = retrieve_profile(request)
@@ -164,7 +159,6 @@ def get_invites(request):
         result_list = []
         try:
             invites = PendingEnrollment.objects.filter(recipient=user_profile).values('class_candidate')
-            print invites
             for element in invites:
                 context_object = {}
                 context_object["url"] =  "/main/invites/" + str(element["class_candidate"]) + "/"
@@ -210,21 +204,28 @@ def view_assignment(request, class_index, assignment_index):
         if request.method == "POST":
             selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
-            if check_access(selected_class, "ST", user_profile):
-                selected_assignment = Assignment.objects.get(id=assignment_index)
-                if request.FILES:
-                    Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["myfile"])
-                else:
-                    TextSubmission.objects.create(user=user_profile, assignment=selected_assignment, text=request.POST["text"])
-                return HttpResponse("Done")
-            return HttpResponse("Authorization failed")
+            selected_assignment = Assignment.objects.get(id=assignment_index)
+            if request.FILES:
+                Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["myfile"], upload_name=str(request.FILES["myfile"]))
+            else:
+                TextSubmission.objects.create(user=user_profile, assignment=selected_assignment, text=request.POST["text"])
+            return redirect("/main/class/" + class_index +"/")
         else:
             user_profile = retrieve_profile(request)
             selected_class = Class.objects.get(id=class_index)
             if check_enrollment(selected_class, user_profile):
                 selected_assignment = selected_class.assignment_set.get(id=assignment_index)
-                submission = returnSubmission(user_profile, selected_assignment, selected_class)
-                return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment, "submission" : submission})
+                try:
+                    selected_upload = Upload.objects.get(assignment=selected_assignment, user=user_profile)
+                    context_object = {}
+                    context_object["url"] = selected_upload.upload.url
+                except:
+                    pass
+                return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment,
+                "submission" : context_object,
+                "class_index" : class_index,
+                "assignment_index": assignment_index
+                })
             else:
                 return HttpResponse("Denied")
     else:
@@ -233,61 +234,47 @@ def view_attendees(request, class_index):
     if returnAuthenticationStatus(request):
         selected_class = Class.objects.get(id=class_index)
         user_profile = retrieve_profile(request)
-        if check_access(selected_class, "TR", user_profile):
-            result_list = []
-            enrollments = Enrollment.objects.filter(enrolled_class=selected_class)
-            for element in enrollments:
-                context_object = {}
-                context_object["url"] =  "/main/user/" + str(element["user"]) + "/" + str(element["enrolled_class"]) + "/"
-                context_object["name"] = UserProfile.objects.get(id=element["user"]).name
-                result_list.append(context_object)
-            return render(request, "main/invites.html", {"invite_list": result_list})
-def view_submissions_by_user(request, user_id, class_id):
+        result_list = []
+        enrollments = Enrollment.objects.filter(enrolled_class=selected_class)
+        for element in enrollments:
+            context_object = {}
+            context_object["url"] =  "/main/class/" + str(element.enrolled_class.id) + "/" + str(element.user.id) + "/view_class_user/"
+            context_object["name"] = element.user.name
+            result_list.append(context_object)
+        return render(request, "main/view_students.html", {"user_list": result_list, "class_index": class_index})
+def view_submissions_by_user(request, user_index, class_index):
     if returnAuthenticationStatus(request):
         selected_class = Class.objects.get(id=class_index)
         user_profile = retrieve_profile(request)
-        if check_access(selected_class, "TR", user_profile):
-            result_list = []
-            selected_user_profile = UserProfile.objects.get(id=user_id)
-            assignments = Assignment.objects.get(user=selected_user_profile, class_id=selected_class)
-            for assignment in assignments:
+        
+        submission_list = []
+        selected_user_profile = UserProfile.objects.get(id=user_index)
+        assignments = Assignment.objects.filter(class_id=selected_class)
+
+        for assignment in assignments:
+            try:
                 selected_upload = Upload.objects.get(assignment=assignment, user=selected_user_profile)
                 context_object = {}
-                context_object["url"] = "download"
+                context_object["url"] = selected_upload.upload.url
                 context_object["name"] = assignment.assignment_name
-                result_list.append(context_object)
-            return render(request, "main/view_submission.html", {"invite_list": result_list})
-def view_submission_by_assignment(request,user_id,class_id):
-    if returnAuthenticationStatus(request):
-        selected_class = Class.objects.get(id=class_index)
-        user_profile = retrieve_profile(request)
-        if check_access(selected_class, "TR", user_profile):
-            result_list = []
-            selected_user_profile = UserProfile.objects.get(id=user_id)
-            assignments = Assignment.objects.get(user=selected_user_profile, class_id=selected_class)
-            for assignment in assignments:
-                selected_upload = Upload.objects.get(assignment=assignment)
-                context_object = {}
-                context_object["url"] = "download"
-                context_object["name"] = assignment.assignment_name
-                result_list.append(context_object)
-            return render(request, "main/view_submission.html", {"invite_list": result_list})
+                submission_list.append(context_object)
+            except:
+                continue
+        return render(request, "main/view_submission.html", {"submission_list": submission_list, "class_index": class_index})
+
 def main(request):
-    return HttpResponse("This is the main page")
+    return render(request, "main/main.html", {})
     
 def register(request):
     if request.method == "POST":
         finished_form = UserCreationForm(request.POST)
-        print request.POST
-        print finished_form.errors
         if finished_form.is_valid():
-            print "yup"
             finished_form.save()
             username = finished_form.cleaned_data.get('username')
             raw_password = finished_form.cleaned_data.get('password1')
             user = authenticate(username=username, password=raw_password)
             login(request, user)
-        return HttpResponse("Finished.")
+        return redirect("/main/index")
     else:
         form = UserCreationForm()
     return render(request, 'registration/register.html',{"form":form})

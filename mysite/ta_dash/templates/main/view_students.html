@@ -1,0 +1,18 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+   
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-3 offset-md-1 index-box">
+           <div> Students in the Class </div>
+           {% for user in user_list %}
+            <div><a href="{{ user.url }}">{{ user.name }}</a></div>
+            {% endfor %}
+            <a href="/main/class/{{class_index}}">Go Back</a> 
+    </div>
+  
+</div>
+</div>
+{% endblock %}

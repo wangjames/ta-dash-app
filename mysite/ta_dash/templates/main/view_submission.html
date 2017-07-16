@@ -1,0 +1,19 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+   
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-5 offset-md-1 index-box">
+            <div> Submission List </div>
+           {% for submission in submission_list %}
+            <div><a href="{{submission.url}}">Download Submission for {{submission.name}}</a></div>
+            {% endfor %}
+            <a href="/main/class/{{class_index}}">Go Back</a> 
+    </div>
+  
+</div>
+</div>
+{% endblock %}

@@ -1,31 +1,51 @@
-<head>
-<style>
-  /* Always set the map height explicitly to define the size of the div
-   * element that contains the map. */
-  #map {
-    height: 100%;
-  }
-  /* Optional: Makes the sample page fill the window. */
-  html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-  }
-</style></head>
-{% for assignment in assignment_list %}
-<h2>
-  <a href="{{ assignment.url }}"> 
-    {{ assignment.name }}
-  </a>
-</h2>
-{% endfor %}
-{{ meeting.meeting_date }}
-<div id="meeting_address">{{ meeting.address }}</div>
+
+{% extends "main/base.html" %}
+
+{% block content %}
+   
+<div class="container">
+    <div class="row">
+        <div class="col-md-3 offset-md-1 index-box">
+           {% for assignment in assignment_list %}
+            <h2>
+              <a href="{{ assignment.url }}"> 
+                {{ assignment.name }}
+              </a>
+            </h2>
+            {% endfor %}
+            <div>
+            <a href="{{ create_assignment_url }}"> Create Assignment </a>
+            </div>
+            <div>
+            <a href="{{ create_meeting_url }}"> Create Meeting </a>
+            </div>
+            <div>
+              <a href="/main/class/{{class_index}}/view_attendees">Class List</a>
+            </div>
+            <div>
+              <a href="/main/invites/">Send Class Invites</a>
+            </div>
+            <div>
+              <a href="/main/index">Go back</a>
+            </div>
+        </div>
+        <div class="col-md-6 offset-md-1 map-box">
+          {% if meeting.meeting_date %}
+            <div id="map"></div>
+            Meeting Date: {{ meeting.meeting_date }}
+            <div>Meeting Address: <span id="meeting_address">{{ meeting.address }}</div>
+          {% else %}
+          <div> No current meeting set. </div>
+          {% endif %}
+        </div>
+    </div>
+  
+</div>
 
 
 
-<a href="{{ create_assignment_url }}"> Create Assignment </a>
-<div id="map"></div>
+
+
  
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCP3SAJ2ThhqgZn7Oawvnd4MbEihpEE7Bs"></script>
 
@@ -44,19 +64,23 @@
             position: results[0].geometry.location
         });
       } else {
-        alert('Geocode was not successful for the following reason: ' + status);
       }
     })};
       function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
           center: {lat: -34.397, lng: 150.644},
-          zoom: 8
+          zoom: 15
         });
         
         codeAddress(map)
       }
-     initMap();
-  }
+     if (document.getElementById('meeting_address').innerHTML != "")
+     {
+        initMap();
+     }
     
-  
+    
+  }
+
 </script>
+{% endblock %}

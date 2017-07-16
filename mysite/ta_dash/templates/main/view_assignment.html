@@ -1,11 +1,20 @@
-This is the view.
+{% extends "main/base.html" %}
 
-{{selected_assignment.assignment_name}}
-
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="myfile">
-    <button type="submit">Upload</button>
-</form>
-
-  
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-2 index-box">
+            Upload your submission for this assignment.
+            {% if submission %}
+            <div>Current Submitted File: <a href="{{submission.url}}">Download</a></div>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" name="myfile">
+            <button type="submit">Upload</button>
+            </form>
+            <a href="/main/class/{{class_index}}">Go Back</a> 
+        </div>
+    </div>
+</div>   
+{% endblock %}

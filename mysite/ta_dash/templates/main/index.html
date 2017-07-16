@@ -1,15 +1,24 @@
-<head>
-{% load staticfiles %}
-<script type="text/javascript" src="{% static 'ta_dash/hi.js' %}"></script>
-</head>
-{% for class in class_list %}
-<h2>
-  <a href="{{ class.url }}"> 
-    {{ class.name }}
-  </a>
-</h2>
-{% endfor %}
-{{ meeting.meeting_date }}
-<div>{{ meeting }}</div>
-Hey
-<a href="{{ create_class_url }}"> Create a class</a>
+{% extends "main/base.html" %}
+
+{% block content %}
+   
+
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-10 offset-md-1 index-box">
+           <div>Class List</div>
+            {% for class in class_list %}
+            <h2>
+              <a href="{{ class.url }}"> 
+                {{ class.name }}
+              </a>
+            </h2>
+            {% endfor %}
+            <a href="{{ create_class_url }}"> Create a class</a>
+        </div>
+    </div>
+  
+</div>
+
+{% endblock %}

@@ -6,9 +6,8 @@ from django.dispatch import receiver
 from ta_dash.storage import OverwriteStorage
 def user_directory_path(instance, filename):
     assignment = instance.assignment
-    assignment_name = assignment.assignment_name
     assigning_class = assignment.class_id.name
-    return '{0}/{1}/{2}'.format(instance.user.name, assigning_class, assignment_name)
+    return '{0}/{1}/{2}'.format(instance.user.name, assigning_class, instance.upload_name)
 
 
 class UserProfile(models.Model):
@@ -43,7 +42,7 @@ class PendingEnrollment(models.Model):
         choices=access_choices,
         default="ST")
 class Assignment(models.Model):
-    assignment_name = models.CharField(max_length=200, unique=True)
+    assignment_name = models.CharField(max_length=200)
     class_id = models.ForeignKey(Class, on_delete=models.CASCADE)
 
             
@@ -51,6 +50,7 @@ class Submission(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     submission_type = models.CharField(max_length=200)
+    upload_name = models.CharField(max_length=200)
     
     class Meta:
         abstract = True
@@ -85,7 +85,7 @@ def delete_duplicate(sender, instance, **kwargs):
     except:
         pass
 @receiver(pre_save, sender= Meeting)
-def delete_duplicate(sender, instance, **kwargs):
+def delete_duplicate_meeting(sender, instance, **kwargs):
     try:
         this = Meeting.objects.get(associated_class=instance.associated_class)
         if this != None:

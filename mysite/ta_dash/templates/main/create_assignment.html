@@ -1,5 +1,19 @@
-<form method="post" action="{% url 'create_assignment' class_index %}">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign up</button>
-  </form>
+{% extends "main/base.html" %}
+
+{% block content %}
+   
+<div class="container">
+    <div class="row">
+        <div class="col-md-4 offset-md-4 text-center login-box">
+            <h2>Create Class</h2>
+            <form method="post" action="{% url 'create_assignment' class_index %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Sign up</button>
+          </form>
+            <a href="/main/class/{{ class_index }}">Go Back</a>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

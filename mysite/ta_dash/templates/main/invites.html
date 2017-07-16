@@ -1,11 +1,25 @@
-<h1> Class Invitations</h1>
-{% for invite in invite_list %}
-    
-    <p>
-        <form  method="post" action= "{{ invite.url }}">
-            {% csrf_token %}
-            <label>Invite for {{ invite.name }}</label>
-          <button type="submit" name="your_name" value="your_value" class="btn-link">Accept</button>
-        </form>
-    </p>
-{% endfor %}
+{% extends "main/base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-2 index-box">
+        <h1>Class Invitations</h1>
+        {% if invite_list %}
+            {% for invite in invite_list %}
+                <p>
+                    <form method="post" action= "{{ invite.url }}">
+                        {% csrf_token %}
+                        <label>Invite for {{ invite.name }}</label>
+                      <button type="submit" name="your_name" value="your_value" class="btn-link">Accept</button>
+                    </form>
+                </p>
+            {% endfor %}
+        {% else %}
+        <div> No current Invitations</div>
+        {% endif %}
+        </div>
+    </div>
+</div>      
+
+{% endblock %}
