@@ -14,6 +14,7 @@ Yelp_Information = {
     "client_secret": "O9bOeq6reFyBreYGRhTRrj2JNVHJoRj9HpgKx7it7EtykTWDGebyLB4mKKndSEZU",
     "grant_type": "client_credentials"
 }
+
 def getAuthenticationToken():
     url = "https://api.yelp.com/oauth2/token"
     response = requests.post(url, params=Yelp_Information)
@@ -59,7 +60,7 @@ def list_view(request):
             result_list.append(context_object)
         return render(request, "main/index.html", {"class_list": result_list, "create_class_url": create_class_url})
     else:
-        return HttpResponse("You need to log in")
+        return redirect("/main/")
 def create_class(request):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
@@ -71,7 +72,7 @@ def create_class(request):
             form = ClassForm()
             return render(request, 'main/create.html', {"form": form})
     else:
-        return HttpResponse("You need to log in")
+        return redirect("/main/")
 
 def class_index(request, class_index):
     if returnAuthenticationStatus(request):
@@ -98,7 +99,7 @@ def class_index(request, class_index):
         else:
             return HttpResponse("You do not have access to the class")
     else:
-        return HttpResponse("Please log in")
+        return redirect("/main/")
 def return_suggestions(request):
     if request.method == "GET":
         address = request.GET.get("address","")
@@ -109,7 +110,7 @@ def return_suggestions(request):
         response = requests.get(url, params=param_dict, headers=headers)
         return HttpResponse(response)
     else:
-        return HttpResponse("Use a GET request.")
+        return redirect("/main/")
 def create_meeting(request, class_index):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
@@ -129,12 +130,12 @@ def create_assignment(request, class_index):
             selected_class = Class.objects.get(id=class_index)
             user_profile = retrieve_profile(request)
             Assignment.objects.create(assignment_name=request.POST["assignment_name"], class_id=selected_class)
-            return redirect("/main/class/class_index")
+            return redirect("/main/class/" + class_index)
         else:
             form = AssignmentForm()
             return render(request, "main/create_assignment.html", {"form": form, "class_index" : class_index})
     else:
-        return HttpResponse("You need to login")
+        return redirect("/main/")
 
 def accept_invite(request, class_index):
     if returnAuthenticationStatus(request):
@@ -145,13 +146,13 @@ def accept_invite(request, class_index):
                 pending_enrollment = PendingEnrollment.objects.get(class_candidate=selected_class, recipient=user_profile)
                 confirmed_enrollment = Enrollment.objects.create(enrolled_class=pending_enrollment.class_candidate, user=pending_enrollment.recipient)
                 pending_enrollment.delete()
-                return HttpResponse("Completed")
+                return redirect("/main/index")
             except:
                 return HttpResponse("No such invite")
         else:
             return HttpResponse("Must be posted")
     else:
-        return HttpResponse("You need to login.")
+        return redirect("/main/")
         
 def get_invites(request):
     if returnAuthenticationStatus(request):
@@ -168,7 +169,7 @@ def get_invites(request):
         except:
             return HttpResponse("No invites")
     else:
-        return HttpResponse("You need to login")
+        return redirect("/main/")
 
 def invite_user(request, class_index):
     if returnAuthenticationStatus(request):
@@ -180,7 +181,7 @@ def invite_user(request, class_index):
                 try:
                     recipient = UserProfile.objects.get(email=recipient_email)
                     PendingEnrollment.objects.create(inviter=user_profile, recipient=recipient, class_candidate=selected_class)
-                    return HttpResponse("Finished")
+                    return redirect("/main/index")
                 except:
                     return HttpResponse("User does not exist")
             else:
@@ -189,7 +190,7 @@ def invite_user(request, class_index):
         else:
             return HttpResponse("You are not in this class.")
     else:
-        return HttpResponse("You need to login.")
+        return redirect("/main/")
             
 def returnSubmission(user, assignment, selected_class):
     if len(assignment.textsubmission_set.all()) == 1:
@@ -229,7 +230,7 @@ def view_assignment(request, class_index, assignment_index):
             else:
                 return HttpResponse("Denied")
     else:
-        return HttpResponse("You have to sign in")
+        return redirect("/main/")
 def view_attendees(request, class_index):
     if returnAuthenticationStatus(request):
         selected_class = Class.objects.get(id=class_index)
@@ -242,6 +243,8 @@ def view_attendees(request, class_index):
             context_object["name"] = element.user.name
             result_list.append(context_object)
         return render(request, "main/view_students.html", {"user_list": result_list, "class_index": class_index})
+    else:
+        return redirect("/main/")
 def view_submissions_by_user(request, user_index, class_index):
     if returnAuthenticationStatus(request):
         selected_class = Class.objects.get(id=class_index)
@@ -261,10 +264,12 @@ def view_submissions_by_user(request, user_index, class_index):
             except:
                 continue
         return render(request, "main/view_submission.html", {"submission_list": submission_list, "class_index": class_index})
+    else:
+        return redirect("/main/")
 
 def main(request):
     return render(request, "main/main.html", {})
-    
+
 def register(request):
     if request.method == "POST":
         finished_form = UserCreationForm(request.POST)

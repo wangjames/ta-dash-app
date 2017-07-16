@@ -5,7 +5,6 @@
 <div class="container">
     <div class="row">
         <div class="col-md-10 offset-md-1 register-box">
-            {% csrf_token %}
             <h2>Sign up</h2>
               <form method="post" action="{% url 'register' %}">
                 {% csrf_token %}
