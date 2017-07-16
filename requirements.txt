@@ -32,3 +32,4 @@ Django == 1.9
 # mysite/ta_dash/views.py: 2
 requests == 2.2.1
 gunicorn == 19.0.0
+whitenoise == 3.3.0

@@ -1,5 +1,5 @@
 from django.forms import ModelForm, EmailField, Form, CharField
-from models import Class, Assignment, Meeting
+from ta_dash.models import Class, Assignment, Meeting
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.translation import ugettext_lazy as _

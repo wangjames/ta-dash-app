@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect
 import requests
-from models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting
+from ta_dash.models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting
 from django.core.serializers import serialize
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm, MeetingForm
+from ta_dash.forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm, MeetingForm
 import json
 Yelp_Information = {
     "client_id": "HbhLE7U93kYuGMRsogCd0A",
@@ -221,7 +221,7 @@ def view_assignment(request, class_index, assignment_index):
                     context_object = {}
                     context_object["url"] = selected_upload.upload.url
                 except:
-                    pass
+                    context_object = {}
                 return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment,
                 "submission" : context_object,
                 "class_index" : class_index,

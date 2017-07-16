@@ -1,6 +1,6 @@
 from django.conf.urls import url, include
 
-from . import views
+from ta_dash import views
 from django.contrib.auth import views as authviews
 
 urlpatterns = [
