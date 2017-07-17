@@ -202,7 +202,6 @@ def returnSubmission(user, assignment, selected_class):
 def guest_login(request):
     
     if not request.user.is_authenticated():
-        print "hi"
         user = authenticate(username="Guest", password="123qwe123")
         login(request, user)
         return redirect("/main/index")
