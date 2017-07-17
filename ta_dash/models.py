@@ -10,6 +10,7 @@ def user_directory_path(instance, filename):
     return '{0}/{1}/{2}'.format(instance.user.name, assigning_class, instance.upload_name)
 
 
+    
 class UserProfile(models.Model):
     name = models.CharField(max_length=200)
     email = models.CharField(max_length=200, unique=True)
@@ -58,7 +59,9 @@ class Submission(models.Model):
 class Upload(Submission):
     upload = models.FileField(max_length=255, storage=OverwriteStorage(), upload_to=user_directory_path)
     
-
+class S3_Upload(models.Model):
+    associated_submission = models.ForeignKey(Upload, on_delete=models.CASCADE)
+    url = models.CharField(max_length=255)
 class TextSubmission(Submission):
     text = models.CharField(max_length=200)
 

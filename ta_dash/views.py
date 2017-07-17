@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 import requests
-from ta_dash.models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting
+from ta_dash.models import UserProfile, Class, Enrollment, AccountProfileID, Assignment, TextSubmission, Upload, PendingEnrollment, Meeting, S3_Upload
 from django.core.serializers import serialize
 from django.utils.encoding import force_text
 from django.core.serializers.json import DjangoJSONEncoder
@@ -8,7 +8,8 @@ from django.http import HttpResponse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
 from ta_dash.forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm, MeetingForm
-import json
+import json, boto3, os
+import sys
 Yelp_Information = {
     "client_id": "HbhLE7U93kYuGMRsogCd0A",
     "client_secret": "O9bOeq6reFyBreYGRhTRrj2JNVHJoRj9HpgKx7it7EtykTWDGebyLB4mKKndSEZU",
@@ -199,6 +200,34 @@ def returnSubmission(user, assignment, selected_class):
         return assignment.upload_set.all()[0]
     else:
         return None
+def sign_s3(request):
+    
+    S3_BUCKET = os.environ.get('S3_BUCKET')
+
+    file_name = request.GET.get('file_name', '')
+    file_type = request.GET.get('file_type', '')
+    
+    s3 = boto3.client('s3')
+    
+    presigned_post = s3.generate_presigned_post(
+    Bucket = S3_BUCKET,
+    Key = file_name,
+    Fields = {"acl": "public-read", "Content-Type": file_type},
+    Conditions = [
+      {"acl": "public-read"},
+      {"Content-Type": file_type}
+    ],
+    ExpiresIn = 3600
+    )
+    print(presigned_post)
+    print(S3_BUCKET)
+    print(file_name)
+    sys.stdout.flush()
+
+    return json.dumps({
+    'data': presigned_post,
+    'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+    })
 def guest_login(request):
     
     if not request.user.is_authenticated():
@@ -214,7 +243,8 @@ def view_assignment(request, class_index, assignment_index):
             user_profile = retrieve_profile(request)
             selected_assignment = Assignment.objects.get(id=assignment_index)
             if request.FILES:
-                Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["myfile"], upload_name=str(request.FILES["myfile"]))
+                created_upload = Upload.objects.create(user=user_profile, assignment=selected_assignment, upload=request.FILES["file_input"], upload_name=str(request.FILES["file_input"]))
+                s3_upload = S3_Upload.objects.create(associated_submission=created_upload, url=request.POST["upload-url"])
             else:
                 TextSubmission.objects.create(user=user_profile, assignment=selected_assignment, text=request.POST["text"])
             return redirect("/main/class/" + class_index +"/")
@@ -225,8 +255,9 @@ def view_assignment(request, class_index, assignment_index):
                 selected_assignment = selected_class.assignment_set.get(id=assignment_index)
                 try:
                     selected_upload = Upload.objects.get(assignment=selected_assignment, user=user_profile)
+                    s3_selected = S3_Upload.objects.get(associated_upload=selected_upload)
                     context_object = {}
-                    context_object["url"] = selected_upload.upload.url
+                    context_object["url"] = s3_selected.url
                 except:
                     context_object = {}
                 return render(request, "main/view_assignment.html", {"selected_assignment": selected_assignment,
@@ -263,9 +294,10 @@ def view_submissions_by_user(request, user_index, class_index):
 
         for assignment in assignments:
             try:
-                selected_upload = Upload.objects.get(assignment=assignment, user=selected_user_profile)
+                selected_upload = Upload.objects.get(assignment=assignment, user=user_profile)
+                s3_selected = S3_Upload.objects.get(associated_submission=selected_upload)
                 context_object = {}
-                context_object["url"] = selected_upload.upload.url
+                context_object["url"] = s3_selected.url
                 context_object["name"] = assignment.assignment_name
                 submission_list.append(context_object)
             except:
