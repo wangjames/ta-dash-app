@@ -199,7 +199,15 @@ def returnSubmission(user, assignment, selected_class):
         return assignment.upload_set.all()[0]
     else:
         return None
-
+def guest_login(request):
+    
+    if not request.user.is_authenticated():
+        print "hi"
+        user = authenticate(username="Guest", password="123qwe123")
+        login(request, user)
+        return redirect("/main/index")
+    else:
+        return redirect("/main/index")
 def view_assignment(request, class_index, assignment_index):
     if returnAuthenticationStatus(request):
         if request.method == "POST":
