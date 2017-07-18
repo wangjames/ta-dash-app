@@ -10,6 +10,8 @@ from django.contrib.auth import authenticate, login
 from ta_dash.forms import ClassForm, AssignmentForm, UserCreationForm, PendingEnrollmentForm, MeetingForm
 import json, boto3, os
 import sys
+from django.http import JsonResponse
+
 Yelp_Information = {
     "client_id": "HbhLE7U93kYuGMRsogCd0A",
     "client_secret": "O9bOeq6reFyBreYGRhTRrj2JNVHJoRj9HpgKx7it7EtykTWDGebyLB4mKKndSEZU",
@@ -202,14 +204,14 @@ def returnSubmission(user, assignment, selected_class):
         return None
 def sign_s3(request):
     
-    S3_BUCKET = os.environ.get('S3_BUCKET')
+    S3_BUCKET = "tadash-assets"
 
     file_name = request.GET.get('file_name', '')
     file_type = request.GET.get('file_type', '')
     
-    s3 = boto3.client('s3')
+    s3client = boto3.client('s3')
     
-    presigned_post = s3.generate_presigned_post(
+    presigned_post = s3client.generate_presigned_post(
     Bucket = S3_BUCKET,
     Key = file_name,
     Fields = {"acl": "public-read", "Content-Type": file_type},
@@ -219,15 +221,11 @@ def sign_s3(request):
     ],
     ExpiresIn = 3600
     )
-    print(presigned_post)
-    print(S3_BUCKET)
-    print(file_name)
-    sys.stdout.flush()
-
-    return json.dumps({
+    url_string = 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+    return HttpResponse(json.dumps({
     'data': presigned_post,
-    'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
-    })
+    'url': url_string
+    }))
 def guest_login(request):
     
     if not request.user.is_authenticated():
@@ -255,7 +253,7 @@ def view_assignment(request, class_index, assignment_index):
                 selected_assignment = selected_class.assignment_set.get(id=assignment_index)
                 try:
                     selected_upload = Upload.objects.get(assignment=selected_assignment, user=user_profile)
-                    s3_selected = S3_Upload.objects.get(associated_upload=selected_upload)
+                    s3_selected = S3_Upload.objects.get(associated_submission=selected_upload)
                     context_object = {}
                     context_object["url"] = s3_selected.url
                 except:

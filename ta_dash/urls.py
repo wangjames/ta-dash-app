@@ -20,7 +20,6 @@ urlpatterns = [
     url('^register/$', views.register, name='register'),
     url('^create/$', views.create_class, name="create_class"),
     url('^create/(?P<class_index>[0-9]+)', views.create_assignment, name="create_assignment"),
-    url('^guestlogin/$', views.guest_login, name="guest_login"),
     url('^sign_s3', views.sign_s3, name="sign_s3")
 ]
 
